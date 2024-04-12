@@ -58,8 +58,3 @@ def lambda_handler(event, lambda_context):
             # If the record does not exist, create a new record with the extracted text
             create_dynamodb_item(file_id, text)
 
-    return {
-            'statusCode': 200,
-            'body': text
-        }
-

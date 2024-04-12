@@ -27,8 +27,3 @@ def lambda_handler(event, lambda_context):
     )
 
     write_to_dynamodb(callback_url, presigned_url)
-
-    return {
-        'statusCode': 200,
-        'body': json.dumps(presigned_url)
-    }
