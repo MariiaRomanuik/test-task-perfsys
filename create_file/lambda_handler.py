@@ -14,7 +14,7 @@ def write_to_dynamodb(callback_url, presigned_url):
     )
 
 
-def lambda_handler(event):
+def lambda_handler(event, lambda_context):
     callback_url = event["body"]
     s3_client = boto3.client('s3')
     presigned_url = s3_client.generate_presigned_url(
