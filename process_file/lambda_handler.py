@@ -1,4 +1,8 @@
+from typing import Any
+
 import boto3
+from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
+
 
 s3 = boto3.client('s3')
 textract = boto3.client('textract')
@@ -31,12 +35,12 @@ def get_bucket_and_key(event):
     return bucket, key
 
 
-def lambda_handler(event, lambda_context):
+def lambda_handler(event: Event, context: LambdaContext) -> None:
     # Get the bucket and key from the S3 event
-    bucket, key = get_bucket_and_key(event)
+    bucket, file_id = get_bucket_and_key(event)
 
     response = textract.detect_document_text(
-        Document={'S3Object': {'Bucket': bucket, 'Name': key}}
+        Document={'S3Object': {'Bucket': bucket, 'Name': file_id}}
     )
 
     # Extract text from the response
@@ -44,9 +48,6 @@ def lambda_handler(event, lambda_context):
     for item in response['Blocks']:
         if item['BlockType'] == 'LINE':
             text += item['Text'] + '\n'
-
-        # Get the file_id from the key (assuming file_id is part of the key)
-        file_id = key.split('/')[0]
 
         # Check if the record with file_id already exists in DynamoDB
         existing_record = get_dynamodb_item(file_id)
