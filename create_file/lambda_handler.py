@@ -32,13 +32,17 @@ class LambdaHandler:
 
     def lambda_handler(self, event: Event, context: LambdaContext) -> dict[str, Any]:
         try:
-            callback_url = event["body"]
+            callback_url = event.get("body")
+            if not callback_url:
+                raise KeyError("Callback URL not found in the event body")
+
             # Check if the callback_url is a valid URL
             if not validators.url(callback_url):
                 return {
                     'statusCode': 400,
                     'body': json.dumps({"error": "Invalid URL"}),
                 }
+
             file_id = uuid4().hex
             presigned_url = self.s3.generate_presigned_url(
                 ClientMethod='put_object',

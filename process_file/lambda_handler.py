@@ -61,10 +61,7 @@ class LambdaHandler:
             )
 
             # Extract text from the response
-            text = ''
-            for item in response['Blocks']:
-                if item['BlockType'] == 'LINE':
-                    text += item['Text'] + '\n'
+            text = ''.join(item['Text'] + '\n' for item in response['Blocks'] if item['BlockType'] == 'LINE')
 
             # Check if the record with file_id already exists in DynamoDB
             existing_record = self.get_dynamodb_item(file_id)

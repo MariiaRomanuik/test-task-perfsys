@@ -18,11 +18,12 @@ class LambdaHandler:
                 }
                 try:
                     response = requests.post(callback_url, data=json.dumps(payload), headers=headers)
+                    response.raise_for_status()
                     print("POST response:", response.text)
                 except RequestException as e:
                     print("Error making POST call:", e)
         except KeyError as e:
-            print("KeyError:", e)
+            print("KeyError:", e, "Event data:", event)
 
 
 def handle(event: Event, context: LambdaContext) -> None:
