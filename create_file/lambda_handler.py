@@ -1,3 +1,9 @@
+"""Lambda Handler Module: Defines the LambdaHandler class for handling AWS Lambda events.
+
+This module contains the LambdaHandler class, which is responsible for handling AWS Lambda events
+and performing operations such as writing to DynamoDB and generating presigned URLs for S3 objects.
+"""
+
 import json
 import os
 from typing import Any, Optional
@@ -19,6 +25,7 @@ class LambdaHandler:
         self.table = self.dynamodb.Table(table_name)
 
     def write_to_dynamodb(self, callback_url: str, file_id: str) -> None:
+        """Writes data to DynamoDB."""
         try:
             self.table.put_item(
                 Item={
@@ -31,6 +38,7 @@ class LambdaHandler:
             raise
 
     def lambda_handler(self, event: Event, context: LambdaContext) -> dict[str, Any]:
+        """Lambda function handler."""
         try:
             callback_url = event.get("body")
             if not callback_url:
@@ -79,6 +87,7 @@ class LambdaHandler:
 
 
 def handle(event: Event, context: LambdaContext) -> dict[str, Any]:
+    """Handles the AWS Lambda invocation."""
     table_name = os.environ.get("DYNAMODB_TABLE_NAME")
     handler = LambdaHandler(table_name)
     return handler.lambda_handler(event, context)
