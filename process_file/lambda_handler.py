@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Optional
 
 import boto3
 from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
@@ -10,13 +10,13 @@ dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('files-table')
 
 
-def create_dynamodb_item(file_id, text):
+def create_dynamodb_item(file_id: str, text: str) -> None:
     table.put_item(
         Item={'fileid': file_id, 'extracted_text': text}
     )
 
 
-def update_dynamodb_item(file_id, text):
+def update_dynamodb_item(file_id: str, text: str) -> None:
     table.update_item(
         Key={'fileid': file_id},
         UpdateExpression='SET extracted_text = :val',
@@ -24,12 +24,12 @@ def update_dynamodb_item(file_id, text):
     )
 
 
-def get_dynamodb_item(file_id):
+def get_dynamodb_item(file_id: str) -> Optional[str]:
     response = table.get_item(Key={'fileid': file_id})
     return response.get('Item')
 
 
-def get_bucket_and_key(event):
+def get_bucket_and_key(event: Event) -> tuple[str, str]:
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = event['Records'][0]['s3']['object']['key']
     return bucket, key
