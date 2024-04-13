@@ -4,6 +4,7 @@ from uuid import uuid4
 from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 from botocore.exceptions import ClientError
 import boto3
+import validators
 
 
 def write_to_dynamodb(callback_url: str, file_id: str) -> None:
@@ -23,7 +24,13 @@ def write_to_dynamodb(callback_url: str, file_id: str) -> None:
 
 def lambda_handler(event: Event, context: LambdaContext) -> dict[str, Any]:
     try:
-        callback_url = event["body"]  # TODO: check if it is a valid url
+        callback_url = event["body"]
+        # Check if the callback_url is a valid URL
+        if not validators.url(callback_url):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({"error": "Invalid URL"}),
+            }
         s3_client = boto3.client('s3')
         file_id = uuid4().hex
         presigned_url = s3_client.generate_presigned_url(
@@ -47,7 +54,6 @@ def lambda_handler(event: Event, context: LambdaContext) -> dict[str, Any]:
             'body': json.dumps({"error": "Invalid request"}),
         }
     except Exception as e:
-        # Handle other exceptions
         print(f"Unhandled error: {e}")
         return {
             'statusCode': 500,
