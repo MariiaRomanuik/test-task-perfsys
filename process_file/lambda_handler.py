@@ -41,7 +41,8 @@ class LambdaHandler:
             print(f"Error getting DynamoDB item: {e}")
             return None
 
-    def get_bucket_and_key(self, event: Event) -> tuple[str, str]:
+    @staticmethod
+    def get_bucket_and_key(event: Event) -> tuple[Optional[str], Optional[str]]:
         try:
             bucket = event['Records'][0]['s3']['bucket']['name']
             key = event['Records'][0]['s3']['object']['key']
