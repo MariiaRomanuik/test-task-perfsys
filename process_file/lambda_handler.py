@@ -12,11 +12,13 @@ from botocore.exceptions import ClientError
 from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 
 import logging
+
 logger = logging.getLogger()
 
 
 class LambdaHandler:
     """Manages Lambda events for S3 uploads, text extraction, and DynamoDB storage."""
+
     def __init__(self, table_name: Optional[str]) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
         if not table_name:
@@ -68,7 +70,7 @@ class LambdaHandler:
 
     @staticmethod
     def extract_text_from_response(response: Any) -> str:
-        return ''.join(item['Text'] + '\n' for item in response['Blocks'] if item['BlockType'] == 'LINE')
+        return '\n'.join(item['Text'] for item in response['Blocks'] if item['BlockType'] == 'LINE')
 
     def lambda_handler(self, event: Event, context: LambdaContext) -> None:
         """Handle Lambda event triggered by file uploads to S3."""
