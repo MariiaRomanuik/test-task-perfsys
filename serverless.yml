@@ -6,6 +6,7 @@ provider:
   runtime: python3.11
   region: eu-central-1
   stage: dev
+  deploymentPrefix: perfsys
   iamRoleStatements:
     - Effect: Allow
       Action: logs:CreateLogGroup
@@ -25,25 +26,27 @@ provider:
       Action: s3:GetObject
       Resource:
         - "arn:aws:s3:::perfsysstorage/*"
-        - "*"
     - Effect: Allow
       Action:
         - dynamodb:UpdateItem
         - dynamodb:PutItem
         - dynamodb:GetItem
-      Resource: "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table"
+      Resource: "arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table"
     # Add the provided policy for MakeCallbackLambda
     - Effect: Allow
       Action: dynamodb:GetRecords
       Resource:
         - "arn:aws:logs:eu-central-1:938668680897:*"
         - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/makeCallback:*"
-        - "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table/stream/*"
+        - "arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table/stream/*"
 
 
 functions:
   createFileLambda:
     handler: create_file.lambda_handler
+    environment:
+      DYNAMODB_TABLE_NAME: "text-extraction-table"
+      BUCKET_NAME: "storageperfsys"
     events:
       - http:
           path: files
@@ -51,10 +54,19 @@ functions:
 
   ProcessFileLambda:
     handler: process_file.lambda_handler
+    environment:
+      DYNAMODB_TABLE_NAME: "text-extraction-table"
+    events: # Add an S3 event trigger
+      - s3:
+          bucket: perfsysstorage
+          event: s3:ObjectCreated:*
 
   MakeCallbackLambda:
     handler: make_callback.lambda_handler
-
+    events: # Add a DynamoDB event trigger
+      - stream:
+          type: dynamodb
+          arn: arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table/stream/*
 
 resources:
   Resources:
@@ -67,7 +79,7 @@ resources:
           Fn::GetAtt:
             - "ApiGatewayRestApi"
             - "RootResourceId"
-        PathPart: "files"
+        PathPart: "getfiles"
     ProxyMethod:
       Type: AWS::ApiGateway::Method
       Properties:
@@ -83,7 +95,6 @@ resources:
           Uri: "https://perfsysstorage.s3.amazonaws.com/{file_id}"
           IntegrationResponses:
             - StatusCode: 200
-
 
 
 #    The following are a few example events you can configure
@@ -122,21 +133,9 @@ resources:
 #            host: example.com
 #            path: /hello
 
-#    Define function environment variables here
-#    environment:
-#      variable2: value2
 
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
 
-# you can add packaging information here
-#package:
-#  patterns:
-#    - '!exclude-me.py'
-#    - '!exclude-me-dir/**'
-#    - include-me.py
-#    - include-me-dir/**
+
 
 
 # you can add CloudFormation resource templates here
