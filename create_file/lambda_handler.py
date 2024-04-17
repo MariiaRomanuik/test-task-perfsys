@@ -1,4 +1,5 @@
-"""Lambda Handler Module: Defines the LambdaHandler class for handling AWS Lambda events.
+"""Lambda Handler Module:
+Defines the LambdaHandler class for handling AWS Lambda events.
 
 This module contains the LambdaHandler class, which is responsible for handling AWS Lambda events
 and performing operations such as writing to DynamoDB and generating presigned URLs for S3 objects.
@@ -17,7 +18,7 @@ import validators
 
 
 class LambdaHandler:
-    def __init__(self, table_name: Optional[str]):
+    def __init__(self, table_name: Optional[str]) -> None:
         if table_name is None:
             raise ValueError("DynamoDB table name is not configured")
         self.s3 = boto3.client('s3')
