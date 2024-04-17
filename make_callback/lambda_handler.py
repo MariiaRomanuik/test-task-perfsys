@@ -7,12 +7,9 @@ sends a POST request to a callback URL with the extracted text
 included in the request body.
 """
 import asyncio
-from asyncio import run
-
 import aiohttp
 from aiohttp import ClientSession
 from lambda_handlers.handlers.lambda_handler import LambdaContext, Event
-from requests.exceptions import RequestException
 import logging
 logger = logging.getLogger()
 
