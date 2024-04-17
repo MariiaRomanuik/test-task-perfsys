@@ -12,19 +12,19 @@ from uuid import uuid4
 
 import botocore
 from boto3.exceptions import Boto3Error
-from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 from botocore.exceptions import ClientError
 import boto3
-import validators
+# import validators
 import logging
 logger = logging.getLogger()
 
 
 class LambdaHandler:
-    def __init__(self, table_name: Optional[str], bucket_name: Optional[str]) -> None:
+    def __init__(self, table_name: Optional[str], bucket_name: Optional[str], region: str) -> None:
         if table_name is None:
             raise ValueError("DynamoDB table name is not configured")
-        self.s3 = boto3.client('s3')
+        self.region = region
+        self.s3 = boto3.client('s3', region_name=region, config=boto3.session.Config(signature_version='s3v4'))
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
         self.bucket_name = bucket_name
@@ -42,19 +42,19 @@ class LambdaHandler:
             logger.exception(f"Error writing to DynamoDB: {e}")
             raise
 
-    def lambda_handler(self, event: Event, context: LambdaContext) -> dict[str, Any]:
+    def lambda_handler(self, event, context) -> dict[str, Any]:
         """Lambda function handler."""
         try:
             callback_url = event.get("body")
             if not callback_url:
                 raise KeyError("Callback URL not found in the event body")
 
-            # Check if the callback_url is a valid URL
-            if not validators.url(callback_url):
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({"error": "Invalid URL"}),
-                }
+            # # Check if the callback_url is a valid URL
+            # if not validators.url(callback_url):
+            #     return {
+            #         'statusCode': 400,
+            #         'body': json.dumps({"error": "Invalid URL"}),
+            #     }
 
             file_id = uuid4().hex
             presigned_url = self.s3.generate_presigned_url(
@@ -65,11 +65,12 @@ class LambdaHandler:
                 },
                 ExpiresIn=3600
             )
+            logger.info(f"{presigned_url=}")
 
             self.write_to_dynamodb(callback_url, file_id)
             return {
                 'statusCode': 200,
-                'body': json.dumps(presigned_url),
+                'body': json.dumps({"presigned_url": presigned_url}),
             }
         except KeyError as e:
             logger.exception(f"KeyError: {e}")
@@ -91,9 +92,10 @@ class LambdaHandler:
             }
 
 
-def handle(event: Event, context: LambdaContext) -> dict[str, Any]:
+def handle(event, context) -> dict[str, Any]:
     """Handles the AWS Lambda invocation."""
+    region = os.environ.get("REGION_NAME")
     bucket_name = os.environ.get("BUCKET_NAME")
     table_name = os.environ.get("DYNAMODB_TABLE_NAME")
-    handler = LambdaHandler(table_name, bucket_name)
+    handler = LambdaHandler(table_name, bucket_name, region)
     return handler.lambda_handler(event, context)

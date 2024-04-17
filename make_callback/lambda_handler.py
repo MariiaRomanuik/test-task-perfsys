@@ -6,11 +6,10 @@ it extracts relevant data, such as extracted text, and
 sends a POST request to a callback URL with the extracted text
 included in the request body.
 """
+import logging
 import asyncio
 import aiohttp
 from aiohttp import ClientSession
-from lambda_handlers.handlers.lambda_handler import LambdaContext, Event
-import logging
 logger = logging.getLogger()
 
 
@@ -22,7 +21,7 @@ class LambdaHandler:
                 callback_url, json=payload, headers=headers, timeout=10) as response:
             return await response.text()
 
-    def lambda_handler(self, event: Event, context: LambdaContext) -> None:
+    def lambda_handler(self, event, context) -> None:
         """Lambda function handler."""
         try:
             extracted_text = event["Records"][0]["dynamodb"]["NewImage"]["extracted_text"]["S"]
@@ -46,7 +45,7 @@ class LambdaHandler:
             logger.exception(f"KeyError: {e}. Event data: {event}")
 
 
-def handle(event: Event, context: LambdaContext) -> None:
+def handle(event, context) -> None:
     """Handles the AWS Lambda invocation."""
     handler = LambdaHandler()
     handler.lambda_handler(event, context)

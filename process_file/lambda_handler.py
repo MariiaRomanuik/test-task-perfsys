@@ -9,8 +9,6 @@ from typing import Optional, Any
 
 import boto3
 from botocore.exceptions import ClientError
-from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
-
 import logging
 
 logger = logging.getLogger()
@@ -19,11 +17,11 @@ logger = logging.getLogger()
 class LambdaHandler:
     """Manages Lambda events for S3 uploads, text extraction, and DynamoDB storage."""
 
-    def __init__(self, table_name: Optional[str]) -> None:
+    def __init__(self, table_name: Optional[str], region: str) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
         if not table_name:
             raise ValueError("DynamoDB table name is not configured")
-        self.s3 = boto3.client('s3')
+        self.s3 = boto3.client('s3', region_name=region)
         self.textract = boto3.client('textract')
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
@@ -58,7 +56,7 @@ class LambdaHandler:
             return None
 
     @staticmethod
-    def get_bucket_and_key(event: Event) -> Optional[tuple[str, str]]:
+    def get_bucket_and_key(event) -> Optional[tuple[str, str]]:
         """Extract S3 bucket and key from the event."""
         try:
             bucket = event['Records'][0]['s3']['bucket']['name']
@@ -72,7 +70,7 @@ class LambdaHandler:
     def extract_text_from_response(response: Any) -> str:
         return '\n'.join(item['Text'] for item in response['Blocks'] if item['BlockType'] == 'LINE')
 
-    def lambda_handler(self, event: Event, context: LambdaContext) -> None:
+    def lambda_handler(self, event, context) -> None:
         """Handle Lambda event triggered by file uploads to S3."""
         try:
             # Get the bucket and key from the S3 event
@@ -102,8 +100,9 @@ class LambdaHandler:
             logger.exception(f"Unhandled error: {e}")
 
 
-def handle(event: Event, context: LambdaContext) -> None:
+def handle(event, context) -> None:
     """Handles the AWS Lambda invocation."""
     table_name = os.environ.get("DYNAMODB_TABLE_NAME")
-    handler = LambdaHandler(table_name)
+    region = os.environ.get("REGION_NAME")
+    handler = LambdaHandler(table_name, region)
     handler.lambda_handler(event, context)
