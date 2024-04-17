@@ -1,27 +1,30 @@
 service: test-task-perfsys
 frameworkVersion: '3'
+custom:
+  accountId: 938668680897
+  region: ${self:custom.region}
 
 provider:
   name: aws
   runtime: python3.11
-  region: eu-central-1
+  region: ${self:custom.region}
   stage: dev
   deploymentPrefix: perfsys
   iamRoleStatements:
     - Effect: Allow
       Action: logs:CreateLogGroup
-      Resource: "arn:aws:logs:eu-central-1:938668680897:*"
+      Resource: "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
     - Effect: Allow
       Action:
         - logs:CreateLogStream
         - logs:PutLogEvents
       Resource:
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/CreateFileLambda:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/ProcessFileLambda:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/MakeCallbackLambda:*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/CreateFileLambda:*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/ProcessFileLambda:*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
     - Effect: Allow
       Action: textract:DetectDocumentText
-      Resource: "arn:aws:lambda:eu-central-1:938668680897:function:test-task-perfsys-${self:provider.stage}-ProcessFileLambda"
+      Resource: "arn:aws:lambda:${self:custom.region}:${self:custom.accountId}:function:test-task-perfsys-${self:provider.stage}-ProcessFileLambda"
     - Effect: Allow
       Action: s3:GetObject
       Resource:
@@ -31,14 +34,14 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:PutItem
         - dynamodb:GetItem
-      Resource: "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table"
+      Resource: "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table"
     # Add the provided policy for MakeCallbackLambda
     - Effect: Allow
       Action: dynamodb:GetRecords
       Resource:
-        - "arn:aws:logs:eu-central-1:938668680897:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/MakeCallbackLambda:*"
-        - "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table/stream/*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
+        - "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table/stream/*"
 
 
 functions:
@@ -47,7 +50,7 @@ functions:
     environment:
       DYNAMODB_TABLE_NAME: "files-table"
       BUCKET_NAME: "perfsys-storage-dev-bucket"
-      REGION_NAME: "eu-central-1"
+      REGION_NAME: "${self:custom.region}"
     events:
       - http:
           path: files
@@ -57,7 +60,7 @@ functions:
     handler: process_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: "files-table"
-      REGION_NAME: "eu-central-1"
+      REGION_NAME: "${self:custom.region}"
     events: # Add an S3 event trigger
       - s3:
           bucket: perfsys-storage-dev-bucket
@@ -68,7 +71,7 @@ functions:
 #    events: # Add a DynamoDB event trigger
 #      - stream:
 #          type: dynamodb
-#          arn: arn:aws:dynamodb:eu-central-1:938668680897:table/files-table/stream/*
+#          arn: arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table/stream/*
 
 resources:
   Resources:
@@ -129,7 +132,7 @@ resources:
 #          pool: MyUserPool
 #          trigger: PreSignUp
 #      - alb:
-#          listenerArn: arn:aws:elasticloadbalancing:eu-central-1:XXXXXX:listener/app/my-load-balancer/50dc6c495c0c9188/
+#          listenerArn: arn:aws:elasticloadbalancing:${self:custom.region}:XXXXXX:listener/app/my-load-balancer/50dc6c495c0c9188/
 #          priority: 1
 #          conditions:
 #            host: example.com
