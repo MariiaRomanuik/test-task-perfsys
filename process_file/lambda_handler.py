@@ -11,6 +11,9 @@ import boto3
 from botocore.exceptions import ClientError
 from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 
+import logging
+logger = logging.getLogger()
+
 
 class LambdaHandler:
     """Manages Lambda events for S3 uploads, text extraction, and DynamoDB storage."""
@@ -30,7 +33,7 @@ class LambdaHandler:
                 Item={'fileid': file_id, 'extracted_text': text}
             )
         except ClientError as e:
-            print(f"Error creating DynamoDB item: {e}")
+            logger.exception(f"Error creating DynamoDB item: {e}")
 
     def update_dynamodb_item(self, file_id: str, text: str) -> None:
         """Update an existing item in the DynamoDB table."""
@@ -41,7 +44,7 @@ class LambdaHandler:
                 ExpressionAttributeValues={':val': text}
             )
         except ClientError as e:
-            print(f"Error updating DynamoDB item: {e}")
+            logger.exception(f"Error updating DynamoDB item: {e}")
 
     def get_dynamodb_item(self, file_id: str) -> Optional[str]:
         """Retrieve an item from the DynamoDB table."""
@@ -49,7 +52,7 @@ class LambdaHandler:
             response = self.table.get_item(Key={'fileid': file_id})
             return response.get('Item')
         except ClientError as e:
-            print(f"Error getting DynamoDB item: {e}")
+            logger.exception(f"Error getting DynamoDB item: {e}")
             return None
 
     @staticmethod
@@ -60,7 +63,7 @@ class LambdaHandler:
             key = event['Records'][0]['s3']['object']['key']
             return bucket, key
         except KeyError as e:
-            print(f"KeyError in getting bucket and key: {e}")
+            logger.exception(f"KeyError in getting bucket and key: {e}")
             return None
 
     def lambda_handler(self, event: Event, context: LambdaContext) -> None:
@@ -69,7 +72,7 @@ class LambdaHandler:
             # Get the bucket and key from the S3 event
             bucket_data = self.get_bucket_and_key(event)
             if bucket_data is None:
-                print("Error: Bucket and Key cannot be None.")
+                logger.error("Bucket and Key cannot be None.")
                 return
             bucket, file_id = bucket_data
 
@@ -90,7 +93,7 @@ class LambdaHandler:
                 # If the record does not exist, create a new record with the extracted text
                 self.create_dynamodb_item(file_id, text)
         except (ClientError, KeyError) as e:
-            print(f"Unhandled error: {e}")
+            logger.exception(f"Unhandled error: {e}")
 
 
 def handle(event: Event, context: LambdaContext) -> None:

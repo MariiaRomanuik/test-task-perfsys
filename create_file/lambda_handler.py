@@ -15,6 +15,8 @@ from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 from botocore.exceptions import ClientError
 import boto3
 import validators
+import logging
+logger = logging.getLogger()
 
 
 class LambdaHandler:
@@ -35,7 +37,7 @@ class LambdaHandler:
                 }
             )
         except ClientError as e:
-            print(f"Error writing to DynamoDB: {e}")
+            logger.exception(f"Error writing to DynamoDB: {e}")
             raise
 
     def lambda_handler(self, event: Event, context: LambdaContext) -> dict[str, Any]:
@@ -68,19 +70,19 @@ class LambdaHandler:
                 'body': json.dumps(presigned_url),
             }
         except KeyError as e:
-            print(f"KeyError: {e}")
+            logger.exception(f"KeyError: {e}")
             return {
                 'statusCode': 400,
                 'body': json.dumps({"error": "Invalid request"}),
             }
         except Boto3Error as e:
-            print(f"Boto3Error: {e}")
+            logger.exception(f"Boto3Error: {e}")
             return {
                 'statusCode': 500,
                 'body': json.dumps({"error": "Internal server error"}),
             }
         except Exception as e:
-            print(f"Unhandled error: {e}")
+            logger.exception(f"Unhandled error: {e}")
             return {
                 'statusCode': 500,
                 'body': json.dumps({"error": "Internal server error"}),

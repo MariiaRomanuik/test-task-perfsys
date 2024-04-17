@@ -11,6 +11,8 @@ from asyncio import run
 from aiohttp import ClientSession
 from lambda_handlers.handlers.lambda_handler import LambdaContext, Event
 from requests.exceptions import RequestException
+import logging
+logger = logging.getLogger()
 
 
 class LambdaHandler:
@@ -36,11 +38,11 @@ class LambdaHandler:
                 try:
                     response = run(self.async_post_request(callback_url, payload, headers))
                     response.raise_for_status()
-                    print("POST response:", response.text)
+                    logger.info(f"POST response: {response.text}")
                 except RequestException as e:
-                    print("Error making POST call:", e)
+                    logger.exception(f"Error making POST call: {e}")
         except KeyError as e:
-            print("KeyError:", e, "Event data:", event)
+            logger.exception(f"KeyError: {e}. Event data: {event}")
 
 
 def handle(event: Event, context: LambdaContext) -> None:
