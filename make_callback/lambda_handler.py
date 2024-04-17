@@ -6,8 +6,10 @@ it extracts relevant data, such as extracted text, and
 sends a POST request to a callback URL with the extracted text
 included in the request body.
 """
-
+import asyncio
 from asyncio import run
+
+import aiohttp
 from aiohttp import ClientSession
 from lambda_handlers.handlers.lambda_handler import LambdaContext, Event
 from requests.exceptions import RequestException
@@ -36,10 +38,12 @@ class LambdaHandler:
                     "Content-Type": "application/json"
                 }
                 try:
-                    response = run(self.async_post_request(callback_url, payload, headers))
+                    # Run an asynchronous post request and wait for its completion.
+                    loop = asyncio.get_event_loop()
+                    response = loop.run_until_complete(self.async_post_request(callback_url, payload, headers))
                     response.raise_for_status()
                     logger.info(f"POST response: {response.text}")
-                except RequestException as e:
+                except aiohttp.ClientError as e:
                     logger.exception(f"Error making POST call: {e}")
         except KeyError as e:
             logger.exception(f"KeyError: {e}. Event data: {event}")

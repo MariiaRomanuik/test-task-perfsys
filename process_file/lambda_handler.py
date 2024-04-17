@@ -5,7 +5,7 @@ This module defines the LambdaHandler class, which manages Lambda events trigger
 It uses Textract to extract text from uploaded files and stores the extracted text in DynamoDB.
 """
 import os
-from typing import Optional
+from typing import Optional, Any
 
 import boto3
 from botocore.exceptions import ClientError
@@ -66,6 +66,10 @@ class LambdaHandler:
             logger.exception(f"KeyError in getting bucket and key: {e}")
             return None
 
+    @staticmethod
+    def extract_text_from_response(response: Any) -> str:
+        return ''.join(item['Text'] + '\n' for item in response['Blocks'] if item['BlockType'] == 'LINE')
+
     def lambda_handler(self, event: Event, context: LambdaContext) -> None:
         """Handle Lambda event triggered by file uploads to S3."""
         try:
@@ -81,7 +85,7 @@ class LambdaHandler:
             )
 
             # Extract text from the response
-            text = ''.join(item['Text'] + '\n' for item in response['Blocks'] if item['BlockType'] == 'LINE')
+            text = self.extract_text_from_response(response)
 
             # Check if the record with file_id already exists in DynamoDB
             existing_record = self.get_dynamodb_item(file_id)

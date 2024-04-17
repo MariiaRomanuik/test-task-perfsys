@@ -81,7 +81,7 @@ class LambdaHandler:
                 'statusCode': 500,
                 'body': json.dumps({"error": "Internal server error"}),
             }
-        except Exception as e:
+        except (ClientError, Boto3Error) as e:
             logger.exception(f"Unhandled error: {e}")
             return {
                 'statusCode': 500,
