@@ -1,6 +1,6 @@
-"""S3 Text Extractor: Handles Lambda events triggered by S3 uploads, extracts text using Textract,
-and stores it in DynamoDB.
-
+"""S3 Text Extractor:
+Handles Lambda events triggered by S3 uploads,
+extracts text using Textract, and stores it in DynamoDB.
 This module defines the LambdaHandler class, which manages Lambda events triggered by S3 uploads.
 It uses Textract to extract text from uploaded files and stores the extracted text in DynamoDB.
 """
@@ -13,7 +13,8 @@ from lambda_handlers.handlers.lambda_handler import Event, LambdaContext
 
 
 class LambdaHandler:
-    def __init__(self, table_name: Optional[str]):
+    """Manages Lambda events for S3 uploads, text extraction, and DynamoDB storage."""
+    def __init__(self, table_name: Optional[str]) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
         if not table_name:
             raise ValueError("DynamoDB table name is not configured")
@@ -66,7 +67,11 @@ class LambdaHandler:
         """Handle Lambda event triggered by file uploads to S3."""
         try:
             # Get the bucket and key from the S3 event
-            bucket, file_id = self.get_bucket_and_key(event)
+            bucket_data = self.get_bucket_and_key(event)
+            if bucket_data is None:
+                print("Error: Bucket and Key cannot be None.")
+                return
+            bucket, file_id = bucket_data
 
             response = self.textract.detect_document_text(
                 Document={'S3Object': {'Bucket': bucket, 'Name': file_id}}
@@ -84,7 +89,7 @@ class LambdaHandler:
             else:
                 # If the record does not exist, create a new record with the extracted text
                 self.create_dynamodb_item(file_id, text)
-        except Exception as e:
+        except (ClientError, KeyError) as e:
             print(f"Unhandled error: {e}")
 
 
