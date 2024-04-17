@@ -16,12 +16,12 @@ provider:
         - logs:CreateLogStream
         - logs:PutLogEvents
       Resource:
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/createFile:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/processFile:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/makeCallback:*"
+        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/CreateFileLambda:*"
+        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/ProcessFileLambda:*"
+        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/MakeCallbackLambda:*"
     - Effect: Allow
       Action: textract:DetectDocumentText
-      Resource: "arn:aws:lambda:eu-central-1:938668680897:function:test-task-perfsys-${self:provider.stage}-processFile"
+      Resource: "arn:aws:lambda:eu-central-1:938668680897:function:test-task-perfsys-${self:provider.stage}-ProcessFileLambda"
     - Effect: Allow
       Action: s3:GetObject
       Resource:
@@ -31,21 +31,21 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:PutItem
         - dynamodb:GetItem
-      Resource: "arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table"
+      Resource: "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table"
     # Add the provided policy for MakeCallbackLambda
     - Effect: Allow
       Action: dynamodb:GetRecords
       Resource:
         - "arn:aws:logs:eu-central-1:938668680897:*"
-        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/makeCallback:*"
-        - "arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table/stream/*"
+        - "arn:aws:logs:eu-central-1:938668680897:log-group:/aws/lambda/MakeCallbackLambda:*"
+        - "arn:aws:dynamodb:eu-central-1:938668680897:table/files-table/stream/*"
 
 
 functions:
   createFileLambda:
     handler: create_file.lambda_handler
     environment:
-      DYNAMODB_TABLE_NAME: "text-extraction-table"
+      DYNAMODB_TABLE_NAME: "files-table"
       BUCKET_NAME: "storageperfsys"
     events:
       - http:
@@ -55,18 +55,18 @@ functions:
   ProcessFileLambda:
     handler: process_file.lambda_handler
     environment:
-      DYNAMODB_TABLE_NAME: "text-extraction-table"
+      DYNAMODB_TABLE_NAME: "files-table"
     events: # Add an S3 event trigger
       - s3:
-          bucket: perfsysstorage
+          bucket: perfsys-storage-dev
           event: s3:ObjectCreated:*
 
   MakeCallbackLambda:
     handler: make_callback.lambda_handler
-    events: # Add a DynamoDB event trigger
-      - stream:
-          type: dynamodb
-          arn: arn:aws:dynamodb:eu-central-1:938668680897:table/text-extraction-table/stream/*
+#    events: # Add a DynamoDB event trigger
+#      - stream:
+#          type: dynamodb
+#          arn: arn:aws:dynamodb:eu-central-1:938668680897:table/files-table/stream/*
 
 resources:
   Resources:
