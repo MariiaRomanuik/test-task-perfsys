@@ -25,7 +25,7 @@ provider:
     - Effect: Allow
       Action: s3:GetObject
       Resource:
-        - "arn:aws:s3:::perfsysstorage/*"
+        - "arn:aws:s3:::perfsys-storage-dev-bucket/*"
     - Effect: Allow
       Action:
         - dynamodb:UpdateItem
@@ -43,26 +43,28 @@ provider:
 
 functions:
   createFileLambda:
-    handler: create_file.lambda_handler
+    handler: create_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: "files-table"
-      BUCKET_NAME: "storageperfsys"
+      BUCKET_NAME: "perfsys-storage-dev-bucket"
+      REGION_NAME: "eu-central-1"
     events:
       - http:
           path: files
           method: post
 
   ProcessFileLambda:
-    handler: process_file.lambda_handler
+    handler: process_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: "files-table"
+      REGION_NAME: "eu-central-1"
     events: # Add an S3 event trigger
       - s3:
-          bucket: perfsys-storage-dev
+          bucket: perfsys-storage-dev-bucket
           event: s3:ObjectCreated:*
 
   MakeCallbackLambda:
-    handler: make_callback.lambda_handler
+    handler: make_callback/lambda_handler.handle
 #    events: # Add a DynamoDB event trigger
 #      - stream:
 #          type: dynamodb
@@ -92,7 +94,7 @@ resources:
         Integration:
           Type: HTTP
           IntegrationHttpMethod: GET
-          Uri: "https://perfsysstorage.s3.amazonaws.com/{file_id}"
+          Uri: "https://perfsys-storage-dev-bucket.s3.amazonaws.com/{file_id}"
           IntegrationResponses:
             - StatusCode: 200
 
