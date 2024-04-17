@@ -4,6 +4,7 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: python3.11
+  region: eu-central-1
   stage: dev
   iamRoleStatements:
     - Effect: Allow
@@ -55,33 +56,33 @@ functions:
     handler: make_callback.lambda_handler
 
 
-#resources:
-#  Resources:
-#    ProxyResource:
-#      Type: AWS::ApiGateway::Resource
-#      Properties:
-#        RestApiId:
-#          Ref: ApiGatewayRestApi
-#        ParentId:
-#          Fn::GetAtt:
-#            - "ApiGatewayRestApi"
-#            - "RootResourceId"
-#        PathPart: "files"
-#    ProxyMethod:
-#      Type: AWS::ApiGateway::Method
-#      Properties:
-#        HttpMethod: "GET"
-#        ResourceId:
-#          Ref: ProxyResource
-#        RestApiId:
-#          Ref: ApiGatewayRestApi
-#        AuthorizationType: NONEашду
-#        Integration:
-#          Type: HTTP
-#          IntegrationHttpMethod: GET
-#          Uri: "https://perfsysstorage.s3.amazonaws.com/{file_id}"
-#          IntegrationResponses:
-#            - StatusCode: 200
+resources:
+  Resources:
+    ProxyResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ParentId:
+          Fn::GetAtt:
+            - "ApiGatewayRestApi"
+            - "RootResourceId"
+        PathPart: "files"
+    ProxyMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: "GET"
+        ResourceId:
+          Ref: ProxyResource
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        AuthorizationType: "NONE"  # Set to "NONE" for public access
+        Integration:
+          Type: HTTP
+          IntegrationHttpMethod: GET
+          Uri: "https://perfsysstorage.s3.amazonaws.com/{file_id}"
+          IntegrationResponses:
+            - StatusCode: 200
 
 
 
