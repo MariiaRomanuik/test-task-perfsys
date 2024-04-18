@@ -14,7 +14,7 @@ import botocore
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import ClientError
 import boto3
-# import validators
+import validators
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -53,11 +53,11 @@ class LambdaHandler:
                 raise KeyError("Callback URL not found in the event body")
 
             # # Check if the callback_url is a valid URL
-            # if not validators.url(callback_url):
-            #     return {
-            #         'statusCode': 400,
-            #         'body': json.dumps({"error": "Invalid URL"}),
-            #     }
+            if not validators.url(callback_url):
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"error": "Invalid URL"}),
+                }
 
             file_id = uuid4().hex
             presigned_url = self.s3.generate_presigned_url(
