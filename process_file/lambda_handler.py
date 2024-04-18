@@ -19,7 +19,7 @@ class LambdaHandler:
 
     def __init__(self, table_name: str, region: str) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
-        self.s3 = boto3.client('s3', region_name=region)
+        self.s3 = boto3.client('s3', region_name=region, config=boto3.session.Config(read_timeout=300))
         self.textract = boto3.client('textract')
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
