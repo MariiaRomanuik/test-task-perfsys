@@ -7,7 +7,7 @@ and performing operations such as writing to DynamoDB and generating presigned U
 
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 import botocore
@@ -16,6 +16,7 @@ from botocore.exceptions import ClientError
 import boto3
 # import validators
 import logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 

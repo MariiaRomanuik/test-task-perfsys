@@ -10,7 +10,7 @@ from typing import Optional, Any
 import boto3
 from botocore.exceptions import ClientError
 import logging
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 

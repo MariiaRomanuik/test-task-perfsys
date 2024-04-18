@@ -3,8 +3,13 @@ This module defines the LambdaHandler class, which handles HTTP requests trigger
 retrieves Textract results for specified files from DynamoDB, and returns the results as a JSON response.
 """
 import json
+import logging
 import os
 import boto3
+from botocore.exceptions import ClientError
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 class LambdaHandler:
@@ -15,6 +20,7 @@ class LambdaHandler:
 
     def lambda_handler(self, event, context):
         try:
+            logger.info(f"{event=}")
             # Retrieve fileid from the path parameters
             fileid = event['pathParameters']['fileid']
 
@@ -27,6 +33,7 @@ class LambdaHandler:
 
             # Check if the file exists in DynamoDB
             if 'Item' in response:
+                logger.info(f"Item : {response['Item']}")
                 # Return the textract results as JSON response
                 return {
                     "statusCode": 200,
@@ -34,15 +41,24 @@ class LambdaHandler:
                 }
             else:
                 # Return 404 if the file is not found
+                logger.error(f"File with file id: {fileid} not found")
                 return {
                     "statusCode": 404,
                     "body": json.dumps({"error": "File not found"})
                 }
-        except Exception as e:
-            # Return error response if any exception occurs
+        except KeyError:
+            # Return 400 if 'pathParameters' or 'fileid' key is missing
+            logger.exception("KeyError: 'pathParameters' or 'fileid' not found")
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Invalid request: 'fileid' not found in path parameters"})
+            }
+        except ClientError as e:
+            # Return 500 if DynamoDB ClientError occurs
+            logger.exception(f"DynamoDB ClientError: {e}")
             return {
                 "statusCode": 500,
-                "body": json.dumps({"error": str(e)})
+                "body": json.dumps({"error": "Internal server error"})
             }
 
 
