@@ -3,6 +3,7 @@ frameworkVersion: '3'
 custom:
   accountId: 938668680897
   region: "eu-central-1"
+  dynamodb_table: "files-table"
 
 provider:
   name: aws
@@ -22,11 +23,14 @@ provider:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/CreateFileLambda:*"
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/ProcessFileLambda:*"
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
+        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/GetFileLambda:*"
     - Effect: Allow
       Action: textract:DetectDocumentText
       Resource: "arn:aws:lambda:${self:custom.region}:${self:custom.accountId}:function:test-task-perfsys-${self:provider.stage}-ProcessFileLambda"
     - Effect: Allow
-      Action: s3:GetObject
+      Action:
+        - s3:GetObject
+        - s3:PutObjectAcl
       Resource:
         - "arn:aws:s3:::perfsys-storage-dev-bucket/*"
     - Effect: Allow
@@ -34,21 +38,21 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:PutItem
         - dynamodb:GetItem
-      Resource: "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table"
+      Resource: "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}"
     # Add the provided policy for MakeCallbackLambda
     - Effect: Allow
       Action: dynamodb:GetRecords
       Resource:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
-        - "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table/stream/*"
+        - "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*"
 
 
 functions:
   createFileLambda:
     handler: create_file/lambda_handler.handle
     environment:
-      DYNAMODB_TABLE_NAME: "files-table"
+      DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
       BUCKET_NAME: "perfsys-storage-dev-bucket"
       REGION_NAME: "${self:custom.region}"
     events:
@@ -59,7 +63,7 @@ functions:
   ProcessFileLambda:
     handler: process_file/lambda_handler.handle
     environment:
-      DYNAMODB_TABLE_NAME: "files-table"
+      DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
       REGION_NAME: "${self:custom.region}"
     events: # Add an S3 event trigger
       - s3:
@@ -71,32 +75,16 @@ functions:
 #    events: # Add a DynamoDB event trigger
 #      - stream:
 #          type: dynamodb
-#          arn: arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/files-table/stream/*
-
-resources:
-  Resources:
-    ProxyResource:
-      Type: AWS::ApiGateway::Resource
-      Properties:
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        ParentId:
-          Fn::GetAtt:
-            - "ApiGatewayRestApi"
-            - "RootResourceId"
-        PathPart: "getfiles"
-    ProxyMethod:
-      Type: AWS::ApiGateway::Method
-      Properties:
-        HttpMethod: "GET"
-        ResourceId:
-          Ref: ProxyResource
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        AuthorizationType: "NONE"  # Set to "NONE" for public access
-        Integration:
-          Type: HTTP
-          IntegrationHttpMethod: GET
-          Uri: "https://perfsys-storage-dev-bucket.s3.amazonaws.com/{file_id}"
-          IntegrationResponses:
-            - StatusCode: 200
+#          arn: arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*
+  GetFileLambda:
+     handler: get_file/lambda_handler.handle
+     environment:
+       DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
+     events:
+       - http:
+           path: files/{fileid}
+           method: get
+           request:
+             parameters:
+               paths:
+                 fileid: true
