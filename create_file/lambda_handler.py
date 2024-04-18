@@ -20,14 +20,15 @@ logger = logging.getLogger()
 
 
 class LambdaHandler:
-    def __init__(self, table_name: Optional[str], bucket_name: Optional[str], region: str) -> None:
+    def __init__(self, table_name: str, bucket_name: str, region: str) -> None:
         if table_name is None:
             raise ValueError("DynamoDB table name is not configured")
         self.region = region
         self.s3 = boto3.client('s3', region_name=region, config=boto3.session.Config(signature_version='s3v4'))
         self.dynamodb = boto3.resource('dynamodb')
-        self.table = self.dynamodb.Table(table_name)
         self.bucket_name = bucket_name
+        with self.dynamodb.Table(table_name) as table:  # Context manager need to manage the DynamoDB table connection
+            self.table = table
 
     def write_to_dynamodb(self, callback_url: str, file_id: str) -> None:
         """Writes data to DynamoDB."""
@@ -95,7 +96,13 @@ class LambdaHandler:
 def handle(event, context) -> dict[str, Any]:
     """Handles the AWS Lambda invocation."""
     region = os.environ.get("REGION_NAME")
+    if not region:
+        raise EnvironmentError("REGION_NAME environment variable is required")
     bucket_name = os.environ.get("BUCKET_NAME")
+    if not bucket_name:
+        raise EnvironmentError("BUCKET_NAME environment variable is required")
     table_name = os.environ.get("DYNAMODB_TABLE_NAME")
+    if not table_name:
+        raise EnvironmentError("DYNAMODB_TABLE_NAME environment variable is required")
     handler = LambdaHandler(table_name, bucket_name, region)
     return handler.lambda_handler(event, context)
