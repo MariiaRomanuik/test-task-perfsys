@@ -24,8 +24,7 @@ class LambdaHandler:
         self.s3 = boto3.client('s3', region_name=region)
         self.textract = boto3.client('textract')
         self.dynamodb = boto3.resource('dynamodb')
-        with self.dynamodb.Table(table_name) as table:  # Context manager need to manage the DynamoDB table connection
-            self.table = table
+        self.table = self.dynamodb.Table(table_name)
 
     def create_dynamodb_item(self, file_id: str, text: str) -> None:
         """Create a new item in the DynamoDB table."""

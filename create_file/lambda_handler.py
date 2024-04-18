@@ -24,11 +24,14 @@ class LambdaHandler:
         if table_name is None:
             raise ValueError("DynamoDB table name is not configured")
         self.region = region
-        self.s3 = boto3.client('s3', region_name=region, config=boto3.session.Config(signature_version='s3v4'))
+        self.s3 = boto3.client(
+            's3', region_name=region,
+            config=boto3.session.Config(signature_version='s3v4'),
+            verify=False
+        )
         self.dynamodb = boto3.resource('dynamodb')
         self.bucket_name = bucket_name
-        with self.dynamodb.Table(table_name) as table:  # Context manager need to manage the DynamoDB table connection
-            self.table = table
+        self.table = self.dynamodb.Table(table_name)
 
     def write_to_dynamodb(self, callback_url: str, file_id: str) -> None:
         """Writes data to DynamoDB."""
