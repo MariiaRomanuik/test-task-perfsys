@@ -6,6 +6,10 @@ custom:
   dynamodb_table: "files-table"
   bucket_name: "perfsys-storage-dev-bucket"
 
+package:
+  include:
+    - requirements.txt
+
 provider:
   name: aws
   runtime: python3.11
@@ -49,9 +53,7 @@ provider:
         - dynamodb:ListStreams
       Resource:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
-        - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
         - "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*"
-
 
 functions:
   createFileLambda:
