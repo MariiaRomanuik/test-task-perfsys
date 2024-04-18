@@ -10,7 +10,6 @@ import os
 from typing import Any
 from uuid import uuid4
 
-import botocore
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import ClientError
 import boto3
@@ -18,6 +17,10 @@ import validators
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
+
+
+class UUIDGenerationError(Exception):
+    """Exception raised when UUID generation fails."""
 
 
 class LambdaHandler:
@@ -50,7 +53,12 @@ class LambdaHandler:
         try:
             callback_url = event.get("body")
             if not callback_url:
-                raise KeyError("Callback URL not found in the event body")
+                logger.error("Callback URL not found in the event body")
+
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({"error": "Callback URL not found in the event body"})
+                }
 
             # # Check if the callback_url is a valid URL
             if not validators.url(callback_url):
@@ -59,14 +67,15 @@ class LambdaHandler:
                     'body': json.dumps({"error": "Invalid URL"}),
                 }
 
-            file_id = uuid4().hex
+            file_id = self.generate_file_id()
             presigned_url = self.s3.generate_presigned_url(
                 ClientMethod='put_object',
                 Params={
                     'Bucket': self.bucket_name,
                     'Key': file_id
                 },
-                ExpiresIn=3600
+                ExpiresIn=3600,
+                Scheme='https'
             )
             logger.info(f"{presigned_url=}")
 
@@ -81,18 +90,27 @@ class LambdaHandler:
                 'statusCode': 400,
                 'body': json.dumps({"error": "Invalid request"}),
             }
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
+            logger.exception(f"ClientError: {e}")
+            return {'statusCode': 500,
+                    'body': json.dumps({"error": "AWS Client error"}),
+                    }
+        except Boto3Error as e:
             logger.exception(f"Boto3Error: {e}")
             return {
                 'statusCode': 500,
-                'body': json.dumps({"error": "Internal server error"}),
-            }
-        except (ClientError, Boto3Error) as e:
-            logger.exception(f"Unhandled error: {e}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({"error": "Internal server error"}),
-            }
+                'body': json.dumps({"error": "Boto3 error"}),
+                }
+
+    @staticmethod
+    def generate_file_id() -> str:
+        try:
+            file_id = uuid4().hex
+        except (TypeError, ValueError) as e:
+            message = f"Failed to generate UUID: {e}"
+            logger.exception(message)
+            raise UUIDGenerationError(message) from e
+        return file_id
 
 
 def handle(event, context) -> dict[str, Any]:

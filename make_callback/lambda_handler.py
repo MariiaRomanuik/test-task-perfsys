@@ -25,6 +25,7 @@ class LambdaHandler:
 
     def lambda_handler(self, event, context) -> None:
         """Lambda function handler."""
+        logger.info(f"{event=}")
         try:
             extracted_text = event["Records"][0]["dynamodb"]["NewImage"]["extracted_text"]["S"]
             callback_url = event["Records"][0]["dynamodb"]["NewImage"]["callback_url"]["S"]
