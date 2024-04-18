@@ -42,7 +42,11 @@ provider:
       Resource: "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}"
     # Add the provided policy for MakeCallbackLambda
     - Effect: Allow
-      Action: dynamodb:GetRecords
+      Action:
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:DescribeStream
+        - dynamodb:ListStreams
       Resource:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/MakeCallbackLambda:*"
@@ -76,7 +80,7 @@ functions:
 #    events: # Add a DynamoDB event trigger
 #      - stream:
 #          type: dynamodb
-#          arn: arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*
+#          arn: "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*"
   GetFileLambda:
      handler: get_file/lambda_handler.handle
      environment:
