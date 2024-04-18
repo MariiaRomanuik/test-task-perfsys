@@ -1,0 +1,97 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2024-04-17T14:19:01Z",
+    "title": "dev-test-task-perfsys",
+    "description": "API for managing files in the test-task-perfsys application."
+  },
+  "host": "l9xkq93pj3.execute-api.eu-central-1.amazonaws.com",
+  "basePath": "/dev",
+  "schemes": ["https"],
+  "paths": {
+    "/files": {
+      "post": {
+        "summary": "Upload a new file",
+        "description": "Endpoint for uploading a new file to the system.",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "formData",
+            "description": "The file to upload",
+            "required": true,
+            "type": "file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File uploaded successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fileId": {
+                  "type": "string",
+                  "description": "The unique identifier of the uploaded file"
+                },
+                "presignedUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Presigned URL for accessing the uploaded file"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid file or missing parameters"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/files/{fileId}": {
+      "get": {
+        "summary": "Retrieve file information",
+        "description": "Endpoint for retrieving information about a specific file.",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "description": "The unique identifier of the file to retrieve",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File information retrieved successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fileId": {
+                  "type": "string",
+                  "description": "The unique identifier of the file"
+                },
+                "callbackUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Callback URL associated with the file"
+                },
+                "otherInfo": {
+                  "type": "string",
+                  "description": "Other information about the file"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  }
+}
