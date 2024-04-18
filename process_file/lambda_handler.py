@@ -19,8 +19,6 @@ class LambdaHandler:
 
     def __init__(self, table_name: str, region: str) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
-        if not table_name:
-            raise ValueError("DynamoDB table name is not configured")
         self.s3 = boto3.client('s3', region_name=region)
         self.textract = boto3.client('textract')
         self.dynamodb = boto3.resource('dynamodb')
@@ -32,6 +30,7 @@ class LambdaHandler:
             self.table.put_item(
                 Item={'fileid': file_id, 'extracted_text': text}
             )
+            logger.info(f"Created a new item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error creating DynamoDB item: {e}")
 
@@ -43,6 +42,7 @@ class LambdaHandler:
                 UpdateExpression='SET extracted_text = :val',
                 ExpressionAttributeValues={':val': text}
             )
+            logger.info(f"Update an existing item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error updating DynamoDB item: {e}")
 
@@ -50,6 +50,7 @@ class LambdaHandler:
         """Retrieve an item from the DynamoDB table."""
         try:
             response = self.table.get_item(Key={'fileid': file_id})
+            logger.info(f"Retrieved an item from the DynamoDB table file_id: {file_id}")
             return response.get('Item')
         except ClientError as e:
             logger.exception(f"Error getting DynamoDB item: {e}")
@@ -86,6 +87,7 @@ class LambdaHandler:
 
             # Extract text from the response
             text = self.extract_text_from_response(response)
+            logger.info(f"Extracted document text: {text}")
 
             # Check if the record with file_id already exists in DynamoDB
             existing_record = self.get_dynamodb_item(file_id)
