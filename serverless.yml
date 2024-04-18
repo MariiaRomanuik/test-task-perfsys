@@ -26,7 +26,7 @@ provider:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:log-group:/aws/lambda/GetFileLambda:*"
     - Effect: Allow
       Action: textract:DetectDocumentText
-      Resource: "arn:aws:lambda:${self:custom.region}:${self:custom.accountId}:function:test-task-perfsys-${self:provider.stage}-ProcessFileLambda"
+      Resource: "*"
     - Effect: Allow
       Action:
         - s3:GetObject
