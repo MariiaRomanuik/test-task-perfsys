@@ -4,6 +4,7 @@ custom:
   accountId: 938668680897
   region: "eu-central-1"
   dynamodb_table: "files-table"
+  bucket_name: "perfsys-storage-dev-bucket"
 
 provider:
   name: aws
@@ -32,7 +33,7 @@ provider:
         - s3:GetObject
         - s3:PutObjectAcl
       Resource:
-        - "arn:aws:s3:::perfsys-storage-dev-bucket/*"
+        - "arn:aws:s3:::${self:custom.bucket_name}/*"
     - Effect: Allow
       Action:
         - dynamodb:UpdateItem
@@ -53,8 +54,8 @@ functions:
     handler: create_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
-      BUCKET_NAME: "perfsys-storage-dev-bucket"
-      REGION_NAME: "${self:custom.region}"
+      BUCKET_NAME: ${self:custom.bucket_name}
+      REGION_NAME: ${self:custom.region}
     events:
       - http:
           path: files
@@ -64,10 +65,10 @@ functions:
     handler: process_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
-      REGION_NAME: "${self:custom.region}"
+      REGION_NAME: ${self:custom.region}
     events: # Add an S3 event trigger
       - s3:
-          bucket: perfsys-storage-dev-bucket
+          bucket: ${self:custom.bucket_name}
           event: s3:ObjectCreated:*
 
   MakeCallbackLambda:
