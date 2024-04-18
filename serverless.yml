@@ -6,9 +6,9 @@ custom:
   dynamodb_table: "files-table"
   bucket_name: "perfsys-storage-dev-bucket"
 
-package:
-  include:
-    - requirements.txt
+plugins:
+  - serverless-python-requirements
+
 
 provider:
   name: aws
