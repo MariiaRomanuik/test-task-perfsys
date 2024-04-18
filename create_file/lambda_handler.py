@@ -21,8 +21,6 @@ logger = logging.getLogger()
 
 class LambdaHandler:
     def __init__(self, table_name: str, bucket_name: str, region: str) -> None:
-        if table_name is None:
-            raise ValueError("DynamoDB table name is not configured")
         self.region = region
         self.s3 = boto3.client(
             's3', region_name=region,
