@@ -51,7 +51,7 @@ class LambdaHandler:
                     logger.info(f"Sending POST request to: {callback_url} with payload: {payload}")
                     loop = asyncio.get_event_loop()
                     response = loop.run_until_complete(self.async_post_request(callback_url, payload, headers))
-                    logger.info(f"POST response: {response.text}")
+                    logger.info(f"POST response: {response}")
                     return {
                         'statusCode': 200,
                         'body': json.dumps({"upload_url": upload_url}),
