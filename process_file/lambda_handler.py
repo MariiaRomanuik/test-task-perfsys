@@ -10,8 +10,9 @@ from typing import Optional, Any
 import boto3
 from botocore.exceptions import ClientError
 import logging
+
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
 
 
 class LambdaHandler:
@@ -28,25 +29,25 @@ class LambdaHandler:
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
 
-    def create_dynamodb_item(self, file_id: str, text: str, upload_url: str) -> None:
+    def create_dynamodb_item(self, file_id: str, text: str) -> None:
         """Create a new item in the DynamoDB table."""
         try:
             self.table.put_item(
-                Item={'fileid': file_id, 'extracted_text': text, 'upload_url': upload_url}
+                Item={'fileid': file_id, 'extracted_text': text}
             )
-            logger.info(f"Created a new item in the DynamoDB table file_id: {file_id}")
+            print(f"Created a new item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error creating DynamoDB item: {e}")
 
-    def update_dynamodb_item(self, file_id: str, text: str, upload_url: str) -> None:
+    def update_dynamodb_item(self, file_id: str, extracted_text: str) -> None:
         """Update an existing item in the DynamoDB table."""
         try:
             self.table.update_item(
                 Key={'fileid': file_id},
-                UpdateExpression='SET extracted_text = :val, upload_url = :upload_url',
-                ExpressionAttributeValues={':val': text, ':upload_url': upload_url}
+                UpdateExpression='SET extracted_text = :extracted_text',
+                ExpressionAttributeValues={':extracted_text': extracted_text}
             )
-            logger.info(f"Updated an existing item in the DynamoDB table file_id: {file_id}")
+            print(f"Updated an existing item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error updating DynamoDB item: {e}")
 
@@ -54,7 +55,7 @@ class LambdaHandler:
         """Retrieve an item from the DynamoDB table."""
         try:
             response = self.table.get_item(Key={'fileid': file_id})
-            logger.info(f"Retrieved an item from the DynamoDB table file_id: {file_id}")
+            print(f"Retrieved an item from the DynamoDB table file_id: {file_id}")
             return response.get('Item')
         except ClientError as e:
             logger.exception(f"Error getting DynamoDB item: {e}")
@@ -73,10 +74,11 @@ class LambdaHandler:
 
     @staticmethod
     def extract_text_from_response(response: Any) -> str:
-        return '\n'.join(item['Text'] for item in response['Blocks'] if item['BlockType'] == 'LINE')
+        return '\n'.join(item.get("Text", "") for item in response['Blocks'] if item['BlockType'] == 'LINE')
 
     def lambda_handler(self, event, context) -> None:
         """Handle Lambda event triggered by file uploads to S3."""
+        print(f"Received event: {event}")
         try:
             # Get the bucket and key from the S3 event
             bucket_data = self.get_bucket_and_key(event)
@@ -90,23 +92,21 @@ class LambdaHandler:
             )
 
             # Extract text from the response
-            logger.info(f"{response=}")
+            print(f"{response=}")
             text = self.extract_text_from_response(response)
-            logger.info(f"Extracted document text: {text}")
-
-            upload_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_id}"
-            logger.info(f"{upload_url=}")
+            print(f"Extraction: {text}")
 
             # Check if the record with file_id already exists in DynamoDB
             existing_record = self.get_dynamodb_item(file_id)
 
             if existing_record:
                 # If the record exists, update it with the extracted text
-                self.update_dynamodb_item(file_id, text, upload_url)
+                self.update_dynamodb_item(file_id, text)
             else:
                 # If the record does not exist, create a new record with the extracted text
-                self.create_dynamodb_item(file_id, text, upload_url)
+                self.create_dynamodb_item(file_id, text)
         except (ClientError, KeyError) as e:
+            print(f"Error: {e}")
             logger.exception(f"Unhandled error: {e}")
 
 

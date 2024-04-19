@@ -6,10 +6,8 @@ it extracts relevant data, such as extracted text, and
 sends a POST request to a callback URL with the extracted text
 included in the request body.
 """
-import json
 import logging
 import asyncio
-from typing import Any
 
 import aiohttp
 from aiohttp import ClientSession, ClientResponseError
@@ -32,14 +30,23 @@ class LambdaHandler:
                 raise e
             return await response.text()
 
-    def lambda_handler(self, event, context) -> dict[str, Any]:
+    def lambda_handler(self, event, context) -> None:
         """Lambda function handler."""
         logger.info(f"{event=}")
         try:
-            extracted_text = event["Records"][0]["dynamodb"]["NewImage"]["extracted_text"]["S"]
-            callback_url = event["Records"][0]["dynamodb"]["NewImage"]["callback_url"]["S"]
-            upload_url = event["Records"][0]["dynamodb"]["NewImage"]["upload_url"]["S"]
-            if extracted_text:
+            new_image_data = event["Records"][0]["dynamodb"]["NewImage"]
+            extracted_text = new_image_data.get("extracted_text", {}).get("S")
+            callback_url = new_image_data.get("callback_url", {}).get("S")
+
+            if not extracted_text:
+                logger.error("No extracted text found in the event data")
+                return
+
+            if not callback_url:
+                logger.error("No callback URL found in the event data")
+                return
+            callback_url = new_image_data["callback_url"]["S"]
+            if extracted_text and callback_url:
                 payload = {
                     "extracted_text": extracted_text
                 }
@@ -48,26 +55,16 @@ class LambdaHandler:
                 }
                 try:
                     # Run an asynchronous post request and wait for its completion.
-                    logger.info(f"Sending POST request to: {callback_url} with payload: {payload}")
+                    print(f"Sending POST request to: {callback_url} with payload: {payload}")
                     loop = asyncio.get_event_loop()
                     response = loop.run_until_complete(self.async_post_request(callback_url, payload, headers))
-                    logger.info(f"POST response: {response}")
-                    return {
-                        'statusCode': 200,
-                        'body': json.dumps({"upload_url": upload_url}),
-                    }
+                    print(f"POST response: {response}")
+
                 except aiohttp.ClientError as e:
                     logger.exception(f"Error making POST call: {e}")
-                    return {
-                        'statusCode': 500,
-                        'body': json.dumps({"upload_url": upload_url, "error": "Error making POST call"}),
-                    }
+
         except KeyError as e:
             logger.exception(f"KeyError: {e}. Event data: {event}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({"error": "KeyError in event data"}),
-            }
 
 
 def handle(event, context) -> None:
