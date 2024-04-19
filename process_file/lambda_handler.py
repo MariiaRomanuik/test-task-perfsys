@@ -17,32 +17,36 @@ logger = logging.getLogger()
 class LambdaHandler:
     """Manages Lambda events for S3 uploads, text extraction, and DynamoDB storage."""
 
-    def __init__(self, table_name: str, region: str) -> None:
+    def __init__(self, table_name: str, region: str, bucket_name: str) -> None:
         """Initialize the LambdaHandler object with the specified DynamoDB table name."""
-        self.s3 = boto3.client('s3', region_name=region, config=boto3.session.Config(read_timeout=300))
+        self.region = region
+        self.bucket_name = bucket_name
+        self.s3 = boto3.client(
+            's3', region_name=self.region, config=boto3.session.Config(signature_version='s3v4', read_timeout=1000)
+        )
         self.textract = boto3.client('textract')
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
 
-    def create_dynamodb_item(self, file_id: str, text: str) -> None:
+    def create_dynamodb_item(self, file_id: str, text: str, file_url: str) -> None:
         """Create a new item in the DynamoDB table."""
         try:
             self.table.put_item(
-                Item={'fileid': file_id, 'extracted_text': text}
+                Item={'fileid': file_id, 'extracted_text': text, 'upload_url': file_url}
             )
             logger.info(f"Created a new item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error creating DynamoDB item: {e}")
 
-    def update_dynamodb_item(self, file_id: str, text: str) -> None:
+    def update_dynamodb_item(self, file_id: str, text: str, file_url: str) -> None:
         """Update an existing item in the DynamoDB table."""
         try:
             self.table.update_item(
                 Key={'fileid': file_id},
-                UpdateExpression='SET extracted_text = :val',
-                ExpressionAttributeValues={':val': text}
+                UpdateExpression='SET extracted_text = :val, file_url = :upload_url',
+                ExpressionAttributeValues={':val': text, ':upload_url': file_url}
             )
-            logger.info(f"Update an existing item in the DynamoDB table file_id: {file_id}")
+            logger.info(f"Updated an existing item in the DynamoDB table file_id: {file_id}")
         except ClientError as e:
             logger.exception(f"Error updating DynamoDB item: {e}")
 
@@ -86,18 +90,22 @@ class LambdaHandler:
             )
 
             # Extract text from the response
+            logger.info(f"{response=}")
             text = self.extract_text_from_response(response)
             logger.info(f"Extracted document text: {text}")
+
+            file_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_id}"
+            logger.info(f"{file_url=}")
 
             # Check if the record with file_id already exists in DynamoDB
             existing_record = self.get_dynamodb_item(file_id)
 
             if existing_record:
                 # If the record exists, update it with the extracted text
-                self.update_dynamodb_item(file_id, text)
+                self.update_dynamodb_item(file_id, text, file_url)
             else:
                 # If the record does not exist, create a new record with the extracted text
-                self.create_dynamodb_item(file_id, text)
+                self.create_dynamodb_item(file_id, text, file_url)
         except (ClientError, KeyError) as e:
             logger.exception(f"Unhandled error: {e}")
 
@@ -110,5 +118,8 @@ def handle(event, context) -> None:
     region = os.environ.get("REGION_NAME")
     if not region:
         raise EnvironmentError("REGION_NAME environment variable is required")
-    handler = LambdaHandler(table_name, region)
+    bucket_name = os.environ.get("BUCKET_NAME")
+    if not bucket_name:
+        raise EnvironmentError("BUCKET_NAME environment variable is required")
+    handler = LambdaHandler(table_name, region, bucket_name)
     handler.lambda_handler(event, context)

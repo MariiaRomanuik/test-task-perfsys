@@ -13,7 +13,8 @@ logger = logging.getLogger()
 
 
 class LambdaHandler:
-    def __init__(self, table_name: str):
+    def __init__(self, table_name: str) -> None:
+        """Initialize the LambdaHandler object."""
         self.dynamodb = boto3.resource('dynamodb')
         self.table_name = table_name
         self.table = self.dynamodb.Table(self.table_name)

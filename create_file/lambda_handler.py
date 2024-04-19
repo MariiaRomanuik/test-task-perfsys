@@ -28,7 +28,7 @@ class LambdaHandler:
         self.region = region
         self.s3 = boto3.client(
             's3', region_name=region,
-            config=boto3.session.Config(signature_version='s3v4'),
+            config=boto3.session.Config(signature_version='s3v4', read_timeout=1000),
             verify=False
         )
         self.dynamodb = boto3.resource('dynamodb')
@@ -74,8 +74,7 @@ class LambdaHandler:
                     'Bucket': self.bucket_name,
                     'Key': file_id
                 },
-                ExpiresIn=3600,
-                Scheme='https'
+                ExpiresIn=3600
             )
             logger.info(f"{presigned_url=}")
 
