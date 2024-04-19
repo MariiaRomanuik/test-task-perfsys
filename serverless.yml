@@ -72,6 +72,7 @@ functions:
     handler: process_file/lambda_handler.handle
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamodb_table}
+      BUCKET_NAME: ${self:custom.bucket_name}
       REGION_NAME: ${self:custom.region}
     events: # Add an S3 event trigger
       - s3:
