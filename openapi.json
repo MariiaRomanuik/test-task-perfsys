@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "2024-04-17T14:19:01Z",
-    "title": "dev-test-task-perfsys",
-    "description": "API for managing files in the test-task-perfsys application."
+    "version": "1.0.0",
+    "title": "Text Extraction API",
+    "description": "API for managing files in the Text Extraction application."
   },
   "host": "l9xkq93pj3.execute-api.eu-central-1.amazonaws.com",
   "basePath": "/dev",

@@ -12,7 +12,6 @@ Text Extraction API is a serverless application built on AWS that handles file p
 - [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
-- [Contact](#contact)
 
 ## Installation
 
