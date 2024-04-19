@@ -50,6 +50,7 @@ class LambdaHandler:
 
     def lambda_handler(self, event, context) -> dict[str, Any]:
         """Lambda function handler."""
+        logger.info(f"Received event: {event}")
         try:
             callback_url = event.get("body")
             if not callback_url:
