@@ -60,7 +60,7 @@ class LambdaHandler:
                     logger.exception(f"Error making POST call: {e}")
                     return {
                         'statusCode': 500,
-                        'body': json.dumps({"error": "Error making POST call"}),
+                        'body': json.dumps({"upload_url": upload_url, "error": "Error making POST call"}),
                     }
         except KeyError as e:
             logger.exception(f"KeyError: {e}. Event data: {event}")
