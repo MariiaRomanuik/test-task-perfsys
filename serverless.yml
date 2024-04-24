@@ -4,7 +4,7 @@ custom:
   accountId: 938668680897
   region: "eu-central-1"
   dynamodb_table: "files-table"
-  bucket_name: "perfsys-storage-dev-bucket"
+  bucket_name: ${self:custom.accountId}
 
 plugins:
   - serverless-python-requirements
@@ -55,6 +55,13 @@ provider:
       Resource:
         - "arn:aws:logs:${self:custom.region}:${self:custom.accountId}:*"
         - "arn:aws:dynamodb:${self:custom.region}:${self:custom.accountId}:table/${self:custom.dynamodb_table}/stream/*"
+
+resources:
+  Resources:
+    StorageBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucket_name}
 
 functions:
   createFileLambda:
